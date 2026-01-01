@@ -1,4 +1,4 @@
-from Zal import *
+from bin import Zal
 
 
 class Theatr:
@@ -15,7 +15,6 @@ class Theatr:
             return seans_time_list[0]
         return -1
 
-
     def add_zal(self, path):
-        zalList.append(zal())
+        zalList.append(Zal.zal())
         zalList[-1].get_map(path)

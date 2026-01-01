@@ -1,5 +1,8 @@
 from bin import Kino
 from bin import Kinotheatr
+import random
+import datatime
+import pandas as pd
 
 comand = 0
 comand2 = 0
@@ -9,6 +12,37 @@ nearest = [0]
 flagCommand = ''
 num = -1
 name = ''
+reklFlag = -1
+monthB = datatime.now.month
+
+
+def buy(tet, zal, kino):
+    global reklFlag, flagCommand, name
+    ind = 0
+    try:
+        for i, elem in enumerate(theatrList[theatrList.index(tet)].zalList[
+                theatrList[theatrList.index(tet)].zalList.index(zal)].kinoList):
+            if elem.name == kino.name:
+                ind = i
+        if int(input("Купить билет? (1 - да, 0 - нет)")):
+            theatrList[theatrList.index(tet)].zalList[
+                theatrList[theatrList.index(tet)].zalList.index(zal)].print_map()
+            y = int(input('Ряд\n'))
+            x = int(input('Место\n'))
+            theatrList[theatrList.index(tet)].zalList[
+                theatrList[theatrList.index(tet)].zalList.index(zal)].buy(x, y, ind)
+        reklFlag = -1
+        name = ''
+        df = pd.read_csv(f'{month}.{year}.xlsx')
+        if 4 < datatime.now.hour < 12:
+            df[f'{theatrList[-1].name}'] = [df.loc[0, 'sr'] + 1, df.loc[1, 'sr'], df.loc[2, 'sr']]
+        elif 12 <= datatime.now.hour < 18:
+            df[f'{theatrList[-1].name}'] = [df.loc[0, 'sr'], df.loc[1, 'sr'] + 1, df.loc[2, 'sr']]
+        else:
+            df[f'{theatrList[-1].name}'] = [df.loc[0, 'sr'], df.loc[1, 'sr'], df.loc[2, 'sr'] + 1]
+        df.to_csv(f'{month}.{year}.xlsx', index=False)
+    except ValueError:
+        flagCommand = '! Ошибка, вводите только цифры. Повторите попытку'
 
 
 def update():
@@ -16,14 +50,44 @@ def update():
 
 
 while True:
+
+    month = datatime.now.month
+    year = datatime.now.year
+    if monthB != month:
+        monthB = month
+        with open(f'bin/{month}.{year}.docx', mode='a') as f:
+            print('Расписание за прошедший месяц успешно создано!')
+        with open(f'{month}.{year}.xlsx', mode='a') as f1:
+            f1.write('def;\
+0\
+0\
+0')
+            print()
+        with open(f'{month}.{year}.pptx', mode='a') as f2:
+            print()
+
     update()
     print(flagCommand)
     flagCommand = ''
+    if len(theatrList) != 0 and reklFlag == -1:
+        reklFlag = random.randint(0, 1)
+        tet = random.choice(theatrList)
+        zal = random.choice(tet.zalList)
+        kino = random.choice(zal.kinoList)
+        if reklFlag:
+            for i in zal.kinoList:
+                if i[1].name == kino.name:
+                    print(f'В кинотеатре {tet.name} Совсем скоро состоится премьера фильма "{kino.name}". Начало премьеры состоится {i[0]}!')
+                    break
+    if reklFlag and reklFlag != -1:
+        buy(tet, zal)
+
     if comand == 0:
         try:
             if len(theatrList) == 0:
                 print('Кинотеатров нет')
-            comand = int(input('Список кинотеатров (1)\nБлижайший сеанс (2)\nДобавить фильм (3)\nДобавить кинотеатр (4)\n'))
+            comand = int(
+                input('Список кинотеатров (1)\nБлижайший сеанс (2)\nДобавить фильм (3)\nДобавить кинотеатр (4)\n'))
         except ValueError:
             flagCommand = '! Введите только цифру'
 
@@ -88,7 +152,8 @@ while True:
                 flagCommand = '! Введите только цифру'
                 continue
             time_start = input('Введите дату и время начала сеанса в формате: Месяц/День/Год Час:Минута\n')
-            if len(time_start.split('/')) != 3 or len(time_start.split('/')[2].split(' ')) != 2 or  len(time_start.split('/')[2].split(' ')[1].split(':')) != 2:
+            if len(time_start.split('/')) != 3 or len(time_start.split('/')[2].split(' ')) != 2 or len(
+                    time_start.split('/')[2].split(' ')[1].split(':')) != 2:
                 flagCommand = '! Введите дату и время в указанном формате!'
                 continue
             time_start = input('Подтвердите дату и время начала сеанса в формате: Месяц/День/Год Час:Минута\n')
@@ -98,7 +163,13 @@ while True:
                 continue
             nowTheatr.zalList[num - 1].add_kino(filmList[film - 1], time_start)
             num = -1
-
+            with open(f'{month}.{year}.pptx', mode='rt') as f:
+                tt = f.readlines()
+            for i in range(len(tt)):
+                if f'"{filmList[film - 1]}"' in tt[i]:
+                    tt[i] += f' {nowTheatr.name},'
+            with open(f'{month}.{year}.pptx', mode='wt') as f:
+                f.writelines(tt)
 
     if comand == 2:
         if name == '':
@@ -115,19 +186,10 @@ while True:
         if len(nearest) != 0:
             flagCommand = \
                 f'Ближайший сеанс в кинотеатре {nearest[1].name} \n Дата показа: {nearest[0][0].strftime("%Y-%m-%d %H:%M")}'
-            if int(input('Купить билет? (1 - да, 0 - нет)')):
-                theatrList[theatrList.index(nearest[1])].zalList[theatrList[theatrList.index(nearest[1])].zalList.index(nearest[0][1])].print_map()
-                try:
-                    x = int(input())
-                    y = int(input())
-                except ValueError:
-                    flagCommand = '! Ошибка, вводите только цифры. Повторите попытку'
-                theatrList[theatrList.index(nearest[1])].zalList[theatrList[theatrList.index(nearest[1])].zalList.index(nearest[0][1])].buy()
-                name = ''
+            buy(nearest[1], nearest[0][1])
         else:
             flagCommand = 'В ближайшее время нет ни одного сеанса'
         comand = 0
-
 
     if comand == 3:
         name = input('Введите название фильма\n')
@@ -140,9 +202,14 @@ while True:
         filmList[-1].name = name
         filmList[-1].duration = dur
         comand = 0
+        with open(f'{month}.{year}.pptx', mode='a') as f:
+            f.write(f'\nПремьера фильма "{name}" состоится в кинотеатрах:')
 
     if comand == 4:
         theatrList.append(Kinotheatr.Theatr)
         theatrList[-1].name = input('Введите название кинотеатра\n')
         print('Кинотеатр создан!')
         comand = 0
+        df = pd.read_csv(f'{month}.{year}.xlsx')
+        df[f'{theatrList[-1].name}'] = [0]
+        df.to_csv(f'{month}.{year}.xlsx', index=False)
